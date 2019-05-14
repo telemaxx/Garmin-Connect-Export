@@ -23,6 +23,8 @@ Description:    Use this script to export your fitness data from Garmin Connect.
 # rsjrny    13 May 2019 Moved various functions to the gceutils.py file
 ####################################################################################################################
 
+#test develop
+
 from datetime import datetime
 from getpass import getpass
 from os import mkdir, remove, stat

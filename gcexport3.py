@@ -13,18 +13,28 @@ Description:    Use this script to export your fitness data from Garmin Connect.
                 See README.md for more information.
 
 
+
 """
+
 ####################################################################################################################
 # Updates:
-# rsjrny    13 May 2019 Added --verbose switch to print detailed messages
+# rsjrny    22 May 2019 Replaced verbose print with logging
+# rsjrny    13 May 2019 Added --verbose
 # rsjrny    13 may 2019 Added -JSON [y , n] to keep or delete the JSON and CSV files
 # rsjrny    13 May 2019 Added a delay between files to eliminated http timeouts and file in use conditions
 # rsjrny    13 May 2019 Fixed the fit_filename so the skip already downloaded would work
 # rsjrny    13 May 2019 Moved various functions to the gceutils.py file
 ####################################################################################################################
 
-#test develop
 
+import argparse
+import json
+import logging
+import re
+import time
+import urllib.parse
+import urllib.request
+import zipfile
 from datetime import datetime
 from getpass import getpass
 from os import mkdir, remove, stat
@@ -33,75 +43,39 @@ from subprocess import call
 from sys import argv
 from xml.dom.minidom import parseString
 
-import argparse
-import gceutils
+import gceaccess
 import gceargs
-import http.cookiejar
-import json
-import re
-import time
-import urllib.error
-import urllib.parse
-import urllib.request
-import zipfile
+import gceutils
 
+"""
+def main():
+    # put main stuff here
+    print("in Main")
+"""
+
+# main()
+log = logging.getLogger("gcelog")
+logging.basicConfig(format="%(message)s", level=logging.INFO)
 SCRIPT_VERSION = "1.0.0"
 CURRENT_DATE = datetime.now().strftime("%Y-%m-%d")
 ACTIVITIES_DIRECTORY = "./" + CURRENT_DATE + "_garmin_connect_export"
 
+# define the ARGs
 PARSER = argparse.ArgumentParser()
-
-gceargs.addARGS(PARSER, ACTIVITIES_DIRECTORY)
-
+gceargs.addargs(PARSER, ACTIVITIES_DIRECTORY)
 ARGS = PARSER.parse_args()
+if ARGS.verbose or ARGS.debug:
+    log.setLevel(logging.DEBUG)
+
 if ARGS.version:
-    print(argv[0] + ", version " + SCRIPT_VERSION)
+    log.info(argv[0] + ", version " + SCRIPT_VERSION)
     exit(0)
 
-COOKIE_JAR = http.cookiejar.CookieJar()
-OPENER = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(COOKIE_JAR))
-
-
-# print(COOKIE_JAR)
-
-
-# url is a string, post is a dictionary of POST parameters, headers is a dictionary of headers.
-def http_req(url, post=None, headers=None):
-    """Helper function that makes the HTTP requests."""
-    request = urllib.request.Request(url)
-    # Tell Garmin we're some supported browser.
-    request.add_header(
-        "User-Agent",
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, \
-        like Gecko) Chrome/54.0.2816.0 Safari/537.36",
-    )
-    if headers:
-        for header_key, header_value in headers.items():
-            request.add_header(header_key, header_value)
-    if post:
-        post = urllib.parse.urlencode(post)
-        post = post.encode("utf-8")  # Convert dictionary to POST parameter string.
-    # print("request.headers: " + str(request.headers) + " COOKIE_JAR: " + str(COOKIE_JAR))
-    # print("post: " + str(post) + "request: " + str(request))
-    response = OPENER.open(request, data=post)
-
-    if response.getcode() == 204:
-        # For activities without GPS coordinates, there is no GPX download (204 = no content).
-        # Write an empty file to prevent redownloading it.
-        print("Writing empty file since there was no GPX activity data...")
-        return ""
-    elif response.getcode() != 200:
-        raise Exception("Bad return code (" + str(response.getcode()) + ") for: " + url)
-    # print(response.getcode())
-
-    return response.read()
-
-
-print("Welcome to Garmin Connect Exporter!")
+log.info("Welcome to Garmin Connect Exporter!")
 
 # Create directory for data files.
 if isdir(ARGS.directory):
-    print(
+    log.info(
         "Warning: Output directory already exists. Will skip already-downloaded files and \
 append to the CSV file."
     )
@@ -112,102 +86,7 @@ PASSWORD = ARGS.password if ARGS.password else getpass()
 # Maximum number of activities you can request at once.  Set and enforced by Garmin.
 LIMIT_MAXIMUM = 1000
 
-WEBHOST = "https://connect.garmin.com"
-REDIRECT = "https://connect.garmin.com/modern/"
-BASE_URL = "https://connect.garmin.com/en-US/signin"
-SSO = "https://sso.garmin.com/sso"
-CSS = "https://static.garmincdn.com/com.garmin.connect/ui/css/gauth-custom-v1.2-min.css"
-
-DATA = {
-    "service": REDIRECT,
-    "webhost": WEBHOST,
-    "source": BASE_URL,
-    "redirectAfterAccountLoginUrl": REDIRECT,
-    "redirectAfterAccountCreationUrl": REDIRECT,
-    "gauthHost": SSO,
-    "locale": "en_US",
-    "id": "gauth-widget",
-    "cssUrl": CSS,
-    "clientId": "GarminConnect",
-    "rememberMeShown": "true",
-    "rememberMeChecked": "false",
-    "createAccountShown": "true",
-    "openCreateAccount": "false",
-    "displayNameShown": "false",
-    "consumeServiceTicket": "false",
-    "initialFocus": "true",
-    "embedWidget": "false",
-    "generateExtraServiceTicket": "true",
-    "generateTwoExtraServiceTickets": "false",
-    "generateNoServiceTicket": "false",
-    "globalOptInShown": "true",
-    "globalOptInChecked": "false",
-    "mobile": "false",
-    "connectLegalTerms": "true",
-    "locationPromptShown": "true",
-    "showPassword": "true",
-}
-
-gceutils.vprintmsg(ARGS.verbose, urllib.parse.urlencode(DATA))
-
-# URLs for various services.
-URL_GC_LOGIN = "https://sso.garmin.com/sso/signin?" + urllib.parse.urlencode(DATA)
-URL_GC_POST_AUTH = "https://connect.garmin.com/modern/activities?"
-URL_GC_PROFILE = "https://connect.garmin.com/modern/profile"
-URL_GC_USERSTATS = (
-    "https://connect.garmin.com/modern/proxy/userstats-service/statistics/"
-)
-URL_GC_LIST = "https://connect.garmin.com/modern/proxy/activitylist-service/activities/search/activities?"
-URL_GC_ACTIVITY = "https://connect.garmin.com/modern/proxy/activity-service/activity/"
-URL_GC_GPX_ACTIVITY = (
-    "https://connect.garmin.com/modern/proxy/download-service/export/gpx/activity/"
-)
-URL_GC_TCX_ACTIVITY = (
-    "https://connect.garmin.com/modern/proxy/download-service/export/tcx/activity/"
-)
-URL_GC_ORIGINAL_ACTIVITY = (
-    "http://connect.garmin.com/proxy/download-service/files/activity/"
-)
-URL_DEVICE_DETAIL = (
-    "https://connect.garmin.com/modern/proxy/device-service/deviceservice/app-info/"
-)
-URL_GEAR_DETAIL = (
-    "https://connect.garmin.com/modern/proxy/gear-service/gear/filterGear?"
-)
-# Initially, we need to get a valid session cookie, so we pull the login page.
-gceutils.vprintmsg(ARGS.verbose, "Request login page")
-http_req(URL_GC_LOGIN)
-gceutils.vprintmsg(ARGS.verbose, "Finish login page")
-
-# Now we'll actually login.
-# Fields that are passed in a typical Garmin login.
-POST_DATA = {
-    "username": USERNAME,
-    "password": PASSWORD,
-    "embed": "false",
-    "rememberme": "on",
-}
-
-HEADERS = {"referer": URL_GC_LOGIN}
-
-gceutils.vprintmsg(ARGS.verbose, "Post login data")
-LOGIN_RESPONSE = http_req(URL_GC_LOGIN + "#", POST_DATA, HEADERS).decode()
-gceutils.vprintmsg(ARGS.verbose, "Finish login post")
-
-# extract the ticket from the login response
-PATTERN = re.compile(r".*\?ticket=([-\w]+)\";.*", re.MULTILINE | re.DOTALL)
-MATCH = PATTERN.match(LOGIN_RESPONSE)
-if not MATCH:
-    raise Exception(
-        "Did not get a ticket in the login response. Cannot log in. Did \
-you enter the correct username and password?"
-    )
-LOGIN_TICKET = MATCH.group(1)
-gceutils.vprintmsg(ARGS.verbose, "Login ticket=" + LOGIN_TICKET)
-
-gceutils.vprintmsg(ARGS.verbose, "Request authentication URL: " + URL_GC_POST_AUTH + "ticket=" + LOGIN_TICKET)
-http_req(URL_GC_POST_AUTH + "ticket=" + LOGIN_TICKET)
-gceutils.vprintmsg(ARGS.verbose, "Finished authentication")
+gceaccess.gclogin(USERNAME, PASSWORD)
 
 # We should be logged in now.
 if not isdir(ARGS.directory):
@@ -215,61 +94,16 @@ if not isdir(ARGS.directory):
 
 CSV_FILENAME = ARGS.directory + "/activities.csv"
 CSV_EXISTED = isfile(CSV_FILENAME)
-
 CSV_FILE = open(CSV_FILENAME, "a")
-
-# Write header to CSV file
 if not CSV_EXISTED:
-    CSV_FILE.write(
-        "Activity name,\
-Description,\
-Bike,\
-Begin timestamp,\
-Duration (h:m:s),\
-Moving duration (h:m:s),\
-Distance (km),\
-Average speed (km/h),\
-Average moving speed (km/h),\
-Max. speed (km/h),\
-Elevation loss uncorrected (m),\
-Elevation gain uncorrected (m),\
-Elevation min. uncorrected (m),\
-Elevation max. uncorrected (m),\
-Min. heart rate (bpm),\
-Max. heart rate (bpm),\
-Average heart rate (bpm),\
-Calories,\
-Avg. cadence (rpm),\
-Max. cadence (rpm),\
-Strokes,\
-Avg. temp (°C),\
-Min. temp (°C),\
-Max. temp (°C),\
-Map,\
-End timestamp,\
-Begin timestamp (ms),\
-End timestamp (ms),\
-Device,\
-Activity type,\
-Event type,\
-Time zone,\
-Begin latitude (°DD),\
-Begin longitude (°DD),\
-End latitude (°DD),\
-End longitude (°DD),\
-Elevation gain corrected (m),\
-Elevation loss corrected (m),\
-Elevation max. corrected (m),\
-Elevation min. corrected (m),\
-Sample count\n"
-    )
+    CSV_FILE.write(gceaccess.csvheader())
 
 DOWNLOAD_ALL = False
 if ARGS.count == "all":
     # If the user wants to download all activities, query the userstats
     # on the profile page to know how many are available
-    gceutils.vprintmsg(ARGS.verbose, "Getting display name and user stats via: " + URL_GC_PROFILE)
-    PROFILE_PAGE = http_req(URL_GC_PROFILE).decode()
+    log.debug("Getting display name and user stats via: " + gceaccess.URL_GC_PROFILE)
+    PROFILE_PAGE = gceaccess.http_req(gceaccess.URL_GC_PROFILE).decode()
     # write_to_file(args.directory + '/profile.html', profile_page, 'a')
 
     # extract the display name from the profile page, it should be in there as
@@ -281,11 +115,11 @@ if ARGS.count == "all":
     if not MATCH:
         raise Exception("Did not find the display name in the profile page.")
     DISPLAY_NAME = MATCH.group(1)
-    print("displayName=" + DISPLAY_NAME)
+    log.info("displayName=" + DISPLAY_NAME)
 
-    print(URL_GC_USERSTATS + DISPLAY_NAME)
-    USER_STATS = http_req(URL_GC_USERSTATS + DISPLAY_NAME)
-    gceutils.vprintmsg(ARGS.verbose, "Finished display name and user stats ~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    log.info(gceaccess.URL_GC_USERSTATS + DISPLAY_NAME)
+    USER_STATS = gceaccess.http_req(gceaccess.URL_GC_USERSTATS + DISPLAY_NAME)
+    log.debug("Finished display name and user stats ~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
     # Persist JSON
     gceutils.write_to_file(ARGS.directory + "/userstats.json", USER_STATS.decode(), "a")
@@ -297,7 +131,9 @@ else:
     TOTAL_TO_DOWNLOAD = int(ARGS.count)
 
 TOTAL_DOWNLOADED = 0
-print("Total to download: " + str(TOTAL_TO_DOWNLOAD))
+TOTAL_SKIPPED = 0
+TOTAL_RETRIEVED = 0
+log.info("Total to download: " + str(TOTAL_TO_DOWNLOAD))
 
 # This while loop will download data from the server in multiple chunks, if necessary.
 while TOTAL_DOWNLOADED < TOTAL_TO_DOWNLOAD:
@@ -312,107 +148,80 @@ while TOTAL_DOWNLOADED < TOTAL_TO_DOWNLOAD:
     SEARCH_PARAMS = {"start": TOTAL_DOWNLOADED, "limit": NUM_TO_DOWNLOAD}
 
     # Query Garmin Connect
-    gceutils.vprintmsg(ARGS.verbose, "Activity list URL: " + URL_GC_LIST + urllib.parse.urlencode(SEARCH_PARAMS))
-    ACTIVITY_LIST = http_req(URL_GC_LIST + urllib.parse.urlencode(SEARCH_PARAMS))
+    log.debug("Activity list URL: " + gceaccess.URL_GC_LIST + urllib.parse.urlencode(SEARCH_PARAMS))
+    ACTIVITY_LIST = gceaccess.http_req(gceaccess.URL_GC_LIST + urllib.parse.urlencode(SEARCH_PARAMS))
+    log.debug("activityList: " + str(ACTIVITY_LIST))
     gceutils.write_to_file(ARGS.directory + "/activity_list.json", ACTIVITY_LIST.decode(), "a")
     LIST = json.loads(ACTIVITY_LIST)
-    # print(LIST)
+    log.debug("LIST:  " + str(LIST))
 
     # Process each activity.
     for a in LIST:
         # Display which entry we're working on.
-        print("Garmin Connect activity: [" + str(a["activityId"]) + "]", end=" ")
-        print(a["activityName"])
+        log.info("Garmin Connect activity: [" + str(a["activityId"]) + "]  " + a["activityName"])
         # print("\t" + a["uploadDate"]["display"] + ",", end=" ")
+        data_filename = ""
+        fit_filename = ""
+        tcx_filename = ""
+        gpx_filename = ""
         if ARGS.format == "gpx":
-            data_filename = (
-                    ARGS.directory + "/" + str(a["activityId"]) + "_activity.gpx"
-            )
-            download_url = URL_GC_GPX_ACTIVITY + str(a["activityId"]) + "?full=true"
-            print(download_url)
+            data_filename = (ARGS.directory + "/" + str(a["activityId"]) + "_activity.gpx")
+            download_url = gceaccess.URL_GC_GPX_ACTIVITY + str(a["activityId"]) + "?full=true"
+            log.debug(download_url)
             file_mode = "w"
         elif ARGS.format == "tcx":
-            data_filename = (
-                    ARGS.directory + "/" + str(a["activityId"]) + "_activity.tcx"
-            )
-            download_url = URL_GC_TCX_ACTIVITY + str(a["activityId"]) + "?full=true"
+            data_filename = (ARGS.directory + "/" + str(a["activityId"]) + "_activity.tcx")
+            download_url = gceaccess.URL_GC_TCX_ACTIVITY + str(a["activityId"]) + "?full=true"
+            log.debug(download_url)
             file_mode = "w"
         elif ARGS.format == "original":
-            data_filename = (
-                    ARGS.directory + "/" + str(a["activityId"]) + "_activity.zip"
-            )
-            fit_filename = ARGS.directory + "/" + str(a["activityId"]) + ".fit"
-            download_url = URL_GC_ORIGINAL_ACTIVITY + str(a["activityId"])
+            data_filename = (ARGS.directory + "/" + str(a["activityId"]) + "_activity.zip")
+            fit_filename = (ARGS.directory + "/" + str(a["activityId"]) + ".fit")
+            tcx_filename = (ARGS.directory + "/" + str(a["activityId"]) + ".tcx")
+            gpx_filename = (ARGS.directory + "/" + str(a["activityId"]) + ".gpx")
+            download_url = gceaccess.URL_GC_ORIGINAL_ACTIVITY + str(a["activityId"])
+            log.debug(download_url)
             file_mode = "wb"
         else:
             raise Exception("Unrecognized format.")
 
-        if isfile(data_filename):
-            print("\tData file already exists; skipping...")
+        if ARGS.format != "original" and isfile(data_filename):
+            log.info("\tData file already exists; skipping...")
+            TOTAL_SKIPPED += 1
             continue
         # Regardless of unzip setting, don't redownload if the ZIP or FIT file exists.
-        if ARGS.format == "original" and isfile(fit_filename):
-            print("\tFIT data file already exists; skipping...")
+        # some original files only contain tcx or gpx - check for all types before downloading
+        if ARGS.format == "original" \
+                and (isfile(data_filename)
+                     or isfile(fit_filename)
+                     or isfile(tcx_filename)
+                     or isfile(gpx_filename)):
+            log.info("\tFIT data file already exists; skipping...")
+            TOTAL_SKIPPED += 1
             continue
 
-        # Download the data file from Garmin Connect. If the download fails (e.g., due to timeout),
-        # this script will die, but nothing will have been written to disk about this activity, so
-        # just running it again should pick up where it left off.
-        print("\tDownloading file...", end=" ")
-
-        try:
-            data = http_req(download_url)
-        except urllib.error.HTTPError as errs:
-            # Handle expected (though unfortunate) error codes; die on unexpected ones.
-            if errs.code == 500 and ARGS.format == "tcx":
-                # Garmin will give an internal server error (HTTP 500) when downloading TCX files
-                # if the original was a manual GPX upload. Writing an empty file prevents this file
-                # from being redownloaded, similar to the way GPX files are saved even when there
-                # are no tracks. One could be generated here, but that's a bit much. Use the GPX
-                # format if you want actual data in every file, as I believe Garmin provides a GPX
-                # file for every activity.
-                print(
-                    "Writing empty file since Garmin did not generate a TCX file for this \
-activity...",
-                    end=" ",
-                )
-                data = ""
-            elif errs.code == 404 and ARGS.format == "original":
-                # For manual activities (i.e., entered in online without a file upload), there is
-                # no original file. # Write an empty file to prevent redownloading it.
-                print(
-                    "Writing empty file since there was no original activity data...",
-                    end=" ",
-                )
-                data = ""
-            else:
-                raise Exception(
-                    "Failed. Got an unexpected HTTP error ("
-                    + str(errs.code)
-                    + download_url
-                    + ")."
-                )
+        data = gceaccess.download_data(download_url, ARGS.format)
 
         # Persist file
+        TOTAL_RETRIEVED += 1
+        # gceutils.write_to_file(data_filename, data, file_mode)
         gceutils.write_to_file(data_filename, gceutils.decoding_decider(ARGS.format, data), file_mode)
 
-        gceutils.vprintmsg(ARGS.verbose, "Activity summary URL: " + URL_GC_ACTIVITY + str(a["activityId"]))
-        ACTIVITY_SUMMARY = http_req(URL_GC_ACTIVITY + str(a["activityId"]))
-        gceutils.write_to_file(
-            ARGS.directory + "/" + str(a["activityId"]) + "_activity_summary.json",
-            ACTIVITY_SUMMARY.decode(),
-            "a",
-        )
-        JSON_SUMMARY = json.loads(ACTIVITY_SUMMARY)
-        # print(JSON_SUMMARY)
+        log.debug("Activity summary URL: " + gceaccess.URL_GC_ACTIVITY + str(a["activityId"]))
+        try:
+            ACTIVITY_SUMMARY = gceaccess.http_req(gceaccess.URL_GC_ACTIVITY + str(a["activityId"]))
+        except Exception:
+            continue
 
-        gceutils.vprintmsg(ARGS.verbose,
-                           "Device detail URL: "
-                           + URL_DEVICE_DETAIL
-                           + str(JSON_SUMMARY["metadataDTO"]["deviceApplicationInstallationId"])
-                           )
-        DEVICE_DETAIL = http_req(
-            URL_DEVICE_DETAIL
+        gceutils.write_to_file(ARGS.directory + "/" + str(a["activityId"]) + "_activity_summary.json",
+                               ACTIVITY_SUMMARY.decode(), "a", )
+        JSON_SUMMARY = json.loads(ACTIVITY_SUMMARY)
+        log.debug(JSON_SUMMARY)
+
+        log.debug("Device detail URL: " + gceaccess.URL_DEVICE_DETAIL
+                  + str(JSON_SUMMARY["metadataDTO"]["deviceApplicationInstallationId"]))
+        DEVICE_DETAIL = gceaccess.http_req(
+            gceaccess.URL_DEVICE_DETAIL
             + str(JSON_SUMMARY["metadataDTO"]["deviceApplicationInstallationId"])
         )
         if DEVICE_DETAIL:
@@ -422,20 +231,20 @@ activity...",
                 "a",
             )
             JSON_DEVICE = json.loads(DEVICE_DETAIL)
-            # print(JSON_DEVICE)
+            log.debug(JSON_DEVICE)
         else:
-            gceutils.vprintmsg(ARGS.verbose, "Retrieving Device Details failed.")
+            log.debug("Retrieving Device Details failed.")
             JSON_DEVICE = None
 
-        gceutils.vprintmsg(ARGS.verbose,
-                           "Activity details URL: "
-                           + URL_GC_ACTIVITY
-                           + str(a["activityId"])
-                           + "/details"
-                           )
+        log.debug(
+            "Activity details URL: "
+            + gceaccess.URL_GC_ACTIVITY
+            + str(a["activityId"])
+            + "/details"
+        )
         try:
-            ACTIVITY_DETAIL = http_req(
-                URL_GC_ACTIVITY + str(a["activityId"]) + "/details"
+            ACTIVITY_DETAIL = gceaccess.http_req(
+                gceaccess.URL_GC_ACTIVITY + str(a["activityId"]) + "/details"
             )
             gceutils.write_to_file(
                 ARGS.directory + "/" + str(a["activityId"]) + "_activity_detail.json",
@@ -443,245 +252,26 @@ activity...",
                 "a",
             )
             JSON_DETAIL = json.loads(ACTIVITY_DETAIL)
-            # print(JSON_DETAIL)
-        except:
-            print("Retrieving Activity Details failed.")
+            log.debug(JSON_DETAIL)
+        except Exception:
+            log.info("Retrieving Activity Details failed.")
             JSON_DETAIL = None
 
-        gceutils.vprintmsg(ARGS.verbose,
-                           "Gear details URL: "
-                           + URL_GEAR_DETAIL
-                           + "activityId="
-                           + str(a["activityId"])
-                           )
+        log.debug("Gear details URL: " + gceaccess.URL_GEAR_DETAIL + "activityId=" + str(a["activityId"]))
+        GEAR_DETAIL = gceaccess.http_req(gceaccess.URL_GEAR_DETAIL + "activityId=" + str(a["activityId"]))
         try:
-            GEAR_DETAIL = http_req(
-                URL_GEAR_DETAIL + "activityId=" + str(a["activityId"])
-            )
-            gceutils.write_to_file(
-                ARGS.directory + "/" + str(a["activityId"]) + "_gear_detail.json",
-                GEAR_DETAIL.decode(),
-                "a",
-            )
+            gceutils.write_to_file(ARGS.directory + "/" + str(a["activityId"]) + "_gear_detail.json",
+                                   GEAR_DETAIL.decode(),
+                                   "a", )
             JSON_GEAR = json.loads(GEAR_DETAIL)
-            # print(JSON_GEAR)
-        except:
-            print("Retrieving Gear Details failed.")
-            # JSON_GEAR = None
+            log.debug(JSON_GEAR)
+        except Exception:
+            log.info("Retrieving Gear Details failed.")
+            JSON_GEAR = None
 
-        # Write stats to CSV.
-        empty_record = ","
-        csv_record = ""
-
-        csv_record += (
-            empty_record
-            if "activityName" not in a or not a["activityName"]
-            else '"' + a["activityName"].replace('"', '""') + '",'
-        )
-
-        # maybe a more elegant way of coding this but need to handle description as null
-        if "description" not in a:
-            csv_record += empty_record
-        elif a["description"] is not None:
-            csv_record += '"' + a["description"].replace('"', '""') + '",'
-        else:
-            csv_record += empty_record
-
-        # Gear detail returned as an array so pick the first one
-        csv_record += (
-            empty_record
-            if not JSON_GEAR or "customMakeModel" not in JSON_GEAR[0]
-            else JSON_GEAR[0]["customMakeModel"] + ","
-        )
-        csv_record += (
-            empty_record
-            if "startTimeLocal" not in JSON_SUMMARY["summaryDTO"]
-            else '"' + JSON_SUMMARY["summaryDTO"]["startTimeLocal"] + '",'
-        )
-        csv_record += (
-            empty_record
-            if "elapsedDuration" not in JSON_SUMMARY["summaryDTO"]
-            else gceutils.hhmmss_from_seconds(JSON_SUMMARY["summaryDTO"]["elapsedDuration"])
-                 + ","
-        )
-        csv_record += (
-            empty_record
-            if "movingDuration" not in JSON_SUMMARY["summaryDTO"]
-            else gceutils.hhmmss_from_seconds(JSON_SUMMARY["summaryDTO"]["movingDuration"]) + ","
-        )
-        csv_record += (
-            empty_record
-            if "distance" not in JSON_SUMMARY["summaryDTO"]
-            else "{0:.5f}".format(JSON_SUMMARY["summaryDTO"]["distance"] / 1000) + ","
-        )
-        csv_record += (
-            empty_record
-            if "averageSpeed" not in JSON_SUMMARY["summaryDTO"]
-            else gceutils.kmh_from_mps(JSON_SUMMARY["summaryDTO"]["averageSpeed"]) + ","
-        )
-        csv_record += (
-            empty_record
-            if "averageMovingSpeed" not in JSON_SUMMARY["summaryDTO"]
-            else gceutils.kmh_from_mps(JSON_SUMMARY["summaryDTO"]["averageMovingSpeed"]) + ","
-        )
-        csv_record += (
-            empty_record
-            if "maxSpeed" not in JSON_SUMMARY["summaryDTO"]
-            else gceutils.kmh_from_mps(JSON_SUMMARY["summaryDTO"]["maxSpeed"]) + ","
-        )
-        csv_record += (
-            empty_record
-            if "elevationLoss" not in JSON_SUMMARY["summaryDTO"]
-            else str(JSON_SUMMARY["summaryDTO"]["elevationLoss"]) + ","
-        )
-        csv_record += (
-            empty_record
-            if "elevationGain" not in JSON_SUMMARY["summaryDTO"]
-            else str(JSON_SUMMARY["summaryDTO"]["elevationGain"]) + ","
-        )
-        csv_record += (
-            empty_record
-            if "minElevation" not in JSON_SUMMARY["summaryDTO"]
-            else str(JSON_SUMMARY["summaryDTO"]["minElevation"]) + ","
-        )
-        csv_record += (
-            empty_record
-            if "maxElevation" not in JSON_SUMMARY["summaryDTO"]
-            else str(JSON_SUMMARY["summaryDTO"]["maxElevation"]) + ","
-        )
-        csv_record += empty_record if "minHR" not in JSON_SUMMARY["summaryDTO"] else ","
-        csv_record += (
-            empty_record
-            if "maxHR" not in JSON_SUMMARY["summaryDTO"]
-            else str(JSON_SUMMARY["summaryDTO"]["maxHR"]) + ","
-        )
-        csv_record += (
-            empty_record
-            if "averageHR" not in JSON_SUMMARY["summaryDTO"]
-            else str(JSON_SUMMARY["summaryDTO"]["averageHR"]) + ","
-        )
-        csv_record += (
-            empty_record
-            if "calories" not in JSON_SUMMARY["summaryDTO"]
-            else str(JSON_SUMMARY["summaryDTO"]["calories"]) + ","
-        )
-        csv_record += (
-            empty_record
-            if "averageBikeCadence" not in JSON_SUMMARY["summaryDTO"]
-            else str(JSON_SUMMARY["summaryDTO"]["averageBikeCadence"]) + ","
-        )
-        csv_record += (
-            empty_record
-            if "maxBikeCadence" not in JSON_SUMMARY["summaryDTO"]
-            else str(JSON_SUMMARY["summaryDTO"]["maxBikeCadence"]) + ","
-        )
-        csv_record += (
-            empty_record
-            if "totalNumberOfStrokes" not in JSON_SUMMARY["summaryDTO"]
-            else str(JSON_SUMMARY["summaryDTO"]["totalNumberOfStrokes"]) + ","
-        )
-        csv_record += (
-            empty_record
-            if "averageTemperature" not in JSON_SUMMARY["summaryDTO"]
-            else str(JSON_SUMMARY["summaryDTO"]["averageTemperature"]) + ","
-        )
-        csv_record += (
-            empty_record
-            if "minTemperature" not in JSON_SUMMARY["summaryDTO"]
-            else str(JSON_SUMMARY["summaryDTO"]["minTemperature"]) + ","
-        )
-        csv_record += (
-            empty_record
-            if "maxTemperature" not in JSON_SUMMARY["summaryDTO"]
-            else str(JSON_SUMMARY["summaryDTO"]["maxTemperature"]) + ","
-        )
-        csv_record += (
-            empty_record
-            if "activityId" not in a
-            else '"https://connect.garmin.com/modern/activity/'
-                 + str(a["activityId"])
-                 + '",'
-        )
-        csv_record += (
-            empty_record if "endTimestamp" not in JSON_SUMMARY["summaryDTO"] else ","
-        )
-        csv_record += (
-            empty_record if "beginTimestamp" not in JSON_SUMMARY["summaryDTO"] else ","
-        )
-        csv_record += (
-            empty_record if "endTimestamp" not in JSON_SUMMARY["summaryDTO"] else ","
-        )
-        csv_record += (
-            empty_record
-            if not JSON_DEVICE or "productDisplayName" not in JSON_DEVICE
-            else JSON_DEVICE["productDisplayName"]
-                 + " "
-                 + JSON_DEVICE["versionString"]
-                 + ","
-        )
-        csv_record += (
-            empty_record
-            if "activityType" not in a
-            else a["activityType"]["typeKey"].title() + ","
-        )
-        csv_record += (
-            empty_record
-            if "eventType" not in a
-            else a["eventType"]["typeKey"].title() + ","
-        )
-        csv_record += (
-            empty_record
-            if "timeZoneUnitDTO" not in JSON_SUMMARY
-            else JSON_SUMMARY["timeZoneUnitDTO"]["timeZone"] + ","
-        )
-        csv_record += (
-            empty_record
-            if "startLatitude" not in JSON_SUMMARY["summaryDTO"]
-            else str(JSON_SUMMARY["summaryDTO"]["startLatitude"]) + ","
-        )
-        csv_record += (
-            empty_record
-            if "startLongitude" not in JSON_SUMMARY["summaryDTO"]
-            else str(JSON_SUMMARY["summaryDTO"]["startLongitude"]) + ","
-        )
-        csv_record += (
-            empty_record
-            if "endLatitude" not in JSON_SUMMARY["summaryDTO"]
-            else str(JSON_SUMMARY["summaryDTO"]["endLatitude"]) + ","
-        )
-        csv_record += (
-            empty_record
-            if "endLongitude" not in JSON_SUMMARY["summaryDTO"]
-            else str(JSON_SUMMARY["summaryDTO"]["endLongitude"]) + ","
-        )
-        csv_record += (
-            empty_record
-            if "gainCorrectedElevation" not in JSON_SUMMARY["summaryDTO"]
-            else ","
-        )
-        csv_record += (
-            empty_record
-            if "lossCorrectedElevation" not in JSON_SUMMARY["summaryDTO"]
-            else ","
-        )
-        csv_record += (
-            empty_record
-            if "maxCorrectedElevation" not in JSON_SUMMARY["summaryDTO"]
-            else ","
-        )
-        csv_record += (
-            empty_record
-            if "minCorrectedElevation" not in JSON_SUMMARY["summaryDTO"]
-            else ","
-        )
-        csv_record += (
-            empty_record
-            if not JSON_DETAIL or "metricsCount" not in JSON_DETAIL
-            else str(JSON_DETAIL["metricsCount"]) + ","
-        )
-        csv_record += "\n"
-
-        CSV_FILE.write(csv_record)
+        # TODO: add this back in and fix decoder
+        # CSV_FILE.write(csv_record)
+        CSV_FILE.write(gceaccess.buildcsvrecord(a, JSON_SUMMARY, JSON_GEAR, JSON_DEVICE, JSON_DETAIL))
 
         if ARGS.format == "gpx" and data:
             # Validate GPX data. If we have an activity without GPS data (e.g., running on a
@@ -690,14 +280,17 @@ activity...",
             # associated log messages) to speed things up.
             gpx = parseString(data)
             if gpx.getElementsByTagName("trkpt"):
-                print("Done. GPX data saved.")
+                log.info("Done. GPX data saved.")
             else:
-                print("Done. No track points found.")
+                log.info("Done. No track points found.")
         elif ARGS.format == "original":
             # Even manual upload of a GPX file is zipped, but we'll validate the extension.
             if ARGS.unzip and data_filename[-3:].lower() == "zip":
-                print("Unzipping and removing original files...", end=" ")
-                print("Filesize is: " + str(stat(data_filename).st_size), " ")
+                log.info("Unzipping and removing original files...")
+                try:
+                    log.info("Filesize is: " + str(stat(data_filename).st_size))
+                except Exception:
+                    continue
                 if stat(data_filename).st_size > 0:
                     zip_file = open(data_filename, "rb")
                     z = zipfile.ZipFile(zip_file)
@@ -705,26 +298,35 @@ activity...",
                         z.extract(name, ARGS.directory)
                     zip_file.close()
                 else:
-                    print("Skipping 0Kb zip file.")
+                    log.info("Skipping 0Kb zip file.")
                 remove(data_filename)
-            print("Done.")
-            time.sleep(3)
+            log.info("Done.")
+            time.sleep(2)
         else:
             # TODO: Consider validating other formats.
-            print("Done.")
+            log.info("Done.")
     TOTAL_DOWNLOADED += NUM_TO_DOWNLOAD
 # End while loop for multiple chunks.
 
 CSV_FILE.close()
 
+# open the csv file in an external program if requested
 if len(ARGS.external):
-    gceutils.vprintmsg(ARGS.verbose, "Open CSV output.")
-    gceutils.vprintmsg(ARGS.verbose, CSV_FILENAME)
+    log.debug("Open CSV output.")
+    log.debug(CSV_FILENAME)
     # open CSV file. Comment this line out if you don't want this behavior
     call([ARGS.external, "--" + ARGS.args, CSV_FILENAME])
 
+# delete the json and csv files before archiving. If requested
 if ARGS.json == "n":
-    # removefiles()
     gceutils.removefiles(ARGS.directory)
 
-print("Done!")
+# archive the downloaded files
+# TODO make zip archive name an arg instead of the y
+if ARGS.archive == "y":
+    gceutils.zipfilesindir(ARGS.directory, "fitfilearchive.zip", [".fit", ".csv"])
+
+log.info("Total Requested...." + str(TOTAL_TO_DOWNLOAD))
+log.info("Total Downloaded..." + str(TOTAL_RETRIEVED))
+log.info("Total Skipped......" + str(TOTAL_SKIPPED))
+log.info("Done!")

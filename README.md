@@ -19,40 +19,59 @@ You will need a little experience running things from the command line to use th
 usage: gcexport.py [-h] [--version] [--username [USERNAME]]
                    [--password [PASSWORD]] [-c [COUNT]]
                    [-f [{gpx,tcx,original}]] [-d [DIRECTORY]] [-u]
-                   [--verbose] [-j [n] ]
+                   [--verbose] [--delete [.EXT] ] 
+                   [--archive [DIRECTORY/FILENAME.ZIP]  ]
 
-optional arguments:
+
   -h, --help            show this help message and exit
-  --version             print version and exit
-  --verbose             print detailed progress output messages
+  
+
   --username [USERNAME]
                         your Garmin Connect username (otherwise, you will be
                         prompted)
+                        
   --password [PASSWORD]
                         your Garmin Connect password (otherwise, you will be
                         prompted)
+                        
+  --archive             after downloading all garmin files automatically zip 
+                        all the files in the directory into the filename.zip
+                                               the specified archive zip file in the specified                       
   -c [COUNT], --count [COUNT]
                         number of recent activities to download, or 'all'
                         (default: 1)
+                        
   -f [{gpx,tcx,original}], --format [{gpx,tcx,original}]
                         export format; can be 'gpx', 'tcx', or 'original'
                         (default: 'gpx')
-  -j [y or n], --json [y or n]
-                         keep or delete the json and csv files 
-                         (default: 'y' (keep) )
+                        
   -d [DIRECTORY], --directory [DIRECTORY]
                         the directory to export to (default: './YYYY-MM-
                         DD_garmin_connect_export')
+                        
+  --debug               print extended progress and debugging messages    
+  
+  --delete              file typesto delete from archivr directory. This 
+                        is performed before the --archive operation. 
+                        -- delete .json .csv would delete all files with the
+                        extention of .json or .csv                 
+                        
   -u, --unzip           if downloading ZIP files (format: 'original'), unzip
                         the file and removes the ZIP file
+                        
+  --verbose             print extended progress messages
+  
+  --version             print version and exit
+  
+                    
 ```
 
 Examples:
-`python gcexport.py --count all` will download all of your data to a dated directory.
+`python gcexport3.py --count all` will download all of your data to a dated directory.
 
-`python gcexport.py -d ~/MyActivities -c 3 -f original -u --username bobbyjoe --password bestpasswordever1` will download your three most recent activities in the FIT file format (or whatever they were uploaded as) into the `~/MyActivities` directory (unless they already exist). Using the `--username` and `--password` flags are not recommended because your password will be stored in your command line history. Instead, omit them to be prompted (and note that nothing will be displayed when you type your password).
+`python gcexport3.py -d ~/MyActivities -c 3 -f original -u --username bobbyjoe --password bestpasswordever1` will download your three most recent activities in the FIT file format (or whatever they were uploaded as) into the `~/MyActivities` directory (unless they already exist). Using the `--username` and `--password` flags are not recommended because your password will be stored in your command line history. Instead, omit them to be prompted (and note that nothing will be displayed when you type your password).
 
-Alternatively, you may run it with `./gcexport.py` if you set the file as executable (i.e., `chmod u+x gcexport.py`).
+Alternatively, you may run it with `./gcexport3.py` if you set the file as executable (i.e., `chmod u+x gcexport.py`).
 
 Of course, you must have Python installed to run this. Most Mac and Linux users should already have it. Also, as stated above, you should have some basic command line experience.
 

@@ -1,6 +1,8 @@
 import logging
 import os
 from datetime import timedelta
+from os import mkdir
+from os.path import isdir
 from zipfile import ZipFile
 
 ####################################################################################################################
@@ -11,35 +13,40 @@ log = logging.getLogger(__name__)
 
 
 # Zip the files from given directory that matches the filter
-def zipfilesindir(dirname, zipfilename, filterlist):
-    log.debug("we are in gceutils.py zipfile")
-    # create a ZipFile object
-    with ZipFile(dirname + zipfilename, 'w') as zipObj:
-        abs_src = os.path.abspath(dirname)
-        # Iterate over all the files in directory
-        for filename in os.listdir(dirname):
-            # build arcname to remove path from archive
+def zipfilesindir(dst, src):
+    """
+    :param dst: full path with filename where the archive will be created
+    :param src: ARGS.directory - we will zip whatever is left in the directory
+    :return:
+    """
+    log.debug("In zipfilesindir, preparing to archive all file in " + src)
+    dirpart = os.path.dirname(dst)
+    if not isdir(dirpart):
+        mkdir(dirpart)
+        log.debug("Archive directory " + dirpart + "created")
+    # fname = os.path.basename(dst)
+    zf = ZipFile(dst, "w")
+    abs_src = os.path.abspath(src)
+    for dirname, subdirs, files in os.walk(src):
+        for filename in files:
             absname = os.path.abspath(os.path.join(dirname, filename))
             arcname = absname[len(abs_src) + 1:]
-            # extract the file extension from the filename. tfn is name part of the split
-            tfn, fileext = os.path.splitext(filename)
-            # print if verbose
-            log.debug("tfn = " + tfn + "  fileext = " + fileext)
-            if fileext in filterlist:
-                # create complete filepath of file in directory
-                filepath = os.path.join(dirname, filename)
-                # Add file to zip
-                zipObj.write(filepath, arcname)
-                log.debug("adding: " + str(filepath) + " to " + absname)
-        # close the Zip File
-        zipObj.close()
-        log.info("Archive created: " + dirname + zipfilename)
+            log.debug("zipping " + os.path.join(dirname, filename) + " as " + arcname)
+            zf.write(absname, arcname)
+    zf.close()
+    log.info("Archive created: " + dst)
 
 
-def removefiles(dirname):
+def removefiles(dirname, dellist):
+    # loop thru all files in the directory
+    log.debug("In removefiles preparing to delete any unwanted files based on the --delete arg")
+    log.debug("   --delete arg = " + str(dellist))
     for filename in os.listdir(dirname):
-        if (filename.endswith('.json')) or (filename.endswith('csv')):
-            # print("debug filename: ", filename)
+        # split filename and extension.
+        fname, fext = os.path.splitext(filename)
+        # if this .ext is in the delete list, delete it
+        if fext in dellist:
+            log.debug("deleting: " + dirname + "\\" + filename)
             os.remove(dirname + "\\" + filename)
 
 
@@ -71,6 +78,7 @@ def decoding_decider(formattype, data):
 
 def write_to_file(filename, content, mode):
     """Helper function that persists content to file."""
+    # if the content is empty write a dummy line esle the write abends
     if content == '':
         content = 'empty file, no data existed in the downloaded file'
     write_file = open(filename, mode)

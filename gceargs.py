@@ -6,8 +6,10 @@ utility functions used in the garmin connect export
 
 def addargs(parser, activities_directory):
     # global ARGS
-    parser.add_argument("--verbose", help="increase output verbosity", action="store_true")
-    parser.add_argument("--version", help="print version and exit", action="store_true")
+    parser.add_argument(
+        "--archive",
+        help="path with filename to create/append an archive",
+    )
     parser.add_argument(
         "--username",
         help="your Garmin Connect username (otherwise, you will be prompted)",
@@ -24,11 +26,6 @@ def addargs(parser, activities_directory):
         nargs="?",
         default="1",
         help="number of recent activities to download, or 'all' (default: 1)",
-    )
-    parser.add_argument(
-        "--debug",
-        default="",
-        help="turn on debugging log",
     )
     parser.add_argument(
         "-e",
@@ -66,15 +63,10 @@ def addargs(parser, activities_directory):
         action="store_true",
     )
     parser.add_argument(
-        "-j",
-        "--json",
-        help="keep or delete json and csv files if not needed (y = keep, n = delete)",
-        choices=["y", "n"],
-        default="y",
+        "--delete",
+        nargs="*",
+        help="list the .types you want deleted before the archive is created. Example --delete .csv .json.",
     )
-    parser.add_argument(
-        "--archive",
-        help="add the .fit files to the archive (y or n)",
-        choices=["y", "n"],
-        default="n",
-    )
+    parser.add_argument("--debug", help="turn on debugging log", action="store_true")
+    parser.add_argument("--verbose", help="increase output verbosity", action="store_true")
+    parser.add_argument("--version", help="print version and exit", action="store_true")

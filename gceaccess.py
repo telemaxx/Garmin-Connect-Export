@@ -17,6 +17,26 @@ import gceutils
 log = logging.getLogger(__name__)
 
 
+def query_garmin_stats():
+    log.debug("Getting display name and user stats via: " + URL_GC_PROFILE)
+    profile_page = http_req(URL_GC_PROFILE).decode()
+    # write_to_file(args.directory + '/profile.html', profile_page, 'a')
+    # extract the display name from the profile page, it should be in there as
+    # \"displayName\":\"eschep\"
+    pattern = re.compile(
+        r".*\\\"displayName\\\":\\\"([-.\w]+)\\\".*", re.MULTILINE | re.DOTALL
+    )
+    match = pattern.match(profile_page)
+    if not match:
+        raise Exception("Did not find the display name in the profile page.")
+    display_name = match.group(1)
+    log.info("displayName=" + display_name)
+    log.info(URL_GC_USERSTATS + display_name)
+    user_stats = http_req(URL_GC_USERSTATS + display_name)
+    log.debug("Finished display name and user stats ~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    return user_stats
+
+
 def download_data(download_url, formattype):
     # Download the data file from Garmin Connect. If the download fails (e.g., due to timeout),
     # this script will die, but nothing will have been written to disk about this activity, so
@@ -48,7 +68,6 @@ def download_data(download_url, formattype):
 
 
 def gclogin(username, password):
-    global PATTERN, MATCH
     # DATA = gceaccess.builddata()
     # log.debug(urllib.parse.urlencode(DATA))
     # Initially, we need to get a valid session cookie, so we pull the login page.
@@ -68,14 +87,17 @@ def gclogin(username, password):
     login_response = http_req(URL_GC_LOGIN + "#", post_data, headers).decode()
     log.debug("Finish login post")
     # extract the ticket from the login response
-    PATTERN = re.compile(r".*\?ticket=([-\w]+)\";.*", re.MULTILINE | re.DOTALL)
-    MATCH = PATTERN.match(login_response)
-    if not MATCH:
+    pattern = re.compile(r".*\?ticket=([-\w]+)\";.*", re.MULTILINE | re.DOTALL)
+    match = pattern.match(login_response)
+
+    if not match:
+        log.debug("the pattern and match do not match")
+        log.debug("login response = " + str(login_response))
         raise Exception(
-            "Did not get a ticket in the login response. Cannot log in. Did \
-    you enter the correct username and password?"
+            "Did not get a ticket in the login response. Cannot log in. "
+            "Did you enter the correct username and password?"
         )
-    login_ticket = MATCH.group(1)
+    login_ticket = match.group(1)
     log.debug("Login ticket=" + login_ticket)
     log.debug("Request authentication URL: " + URL_GC_POST_AUTH + "ticket=" + login_ticket)
     # login to garmin
@@ -105,7 +127,7 @@ def http_req(url, post=None, headers=None):
     if response.getcode() == 204:
         # For activities without GPS coordinates, there is no GPX download (204 = no content).
         # Write an empty file to prevent redownloading it.
-        print("Writing empty file since there was no GPX activity data...")
+        log.info("Writing empty file since there was no GPX activity data...")
         return ""
     elif response.getcode() != 200:
         raise Exception("Bad return code (" + str(response.getcode()) + ") for: " + url)

@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 from datetime import timedelta
 from os import mkdir
 from os.path import isdir
@@ -20,6 +21,8 @@ def zipfilesindir(dst, src):
     :return:
     """
     log.debug("In zipfilesindir, preparing to archive all file in " + src)
+    # sleep to allow system to finish processing file. We don't want an inuse or not found error
+    time.sleep(3)
     dirpart = os.path.dirname(dst)
     if not isdir(dirpart):
         mkdir(dirpart)
@@ -48,6 +51,7 @@ def removefiles(dirname, dellist):
         if fext in dellist:
             log.debug("deleting: " + dirname + "\\" + filename)
             os.remove(dirname + "\\" + filename)
+    time.sleep(3)
 
 
 def kmh_from_mps(mps):
@@ -84,3 +88,9 @@ def write_to_file(filename, content, mode):
     write_file = open(filename, mode)
     write_file.write(content)
     write_file.close()
+
+
+def printverbose(verarg, vermsg):
+    if verarg:
+        print(vermsg)
+    return

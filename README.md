@@ -34,9 +34,11 @@ usage: gcexport.py [-h] [--version] [--username [USERNAME]]
                         your Garmin Connect password (otherwise, you will be
                         prompted)
                         
-  --archive             after downloading all garmin files automatically zip 
-                        all the files in the directory into the filename.zip
-                                               the specified archive zip file in the specified                       
+  --archive             
+                        after downloading, all the files in the directory will be zipped into
+                        the specified archive zip file. The zip is performed after the optional
+                        --delete processing.
+                                               
   -c [COUNT], --count [COUNT]
                         number of recent activities to download, or 'all'
                         (default: 1)
@@ -96,7 +98,7 @@ Original author: Kyle Krafka (https://github.com/kjkjava/)
 Date: April 28, 2015
 Fork author: Michael P (https://github.com/moderation/)
 
-I have added --verbose and --json switches to cut down on the printed output and automatically remove the .JSON and .CSV files keeping only the .fit output files
+I have added --verbose, --delete, --debug, and --archive  switches to cut down on the printed output and automatically remove the .JSON and .CSV files keeping only the .fit output files. The scripts have also been moved into submodules 
 
 Contributions
 -------------

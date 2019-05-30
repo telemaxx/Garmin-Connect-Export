@@ -6,6 +6,7 @@ garmin.com access for exporting data files
 """
 
 import http.cookiejar
+import json
 import logging
 import re
 import urllib.error
@@ -15,6 +16,8 @@ import urllib.request
 import gceutils
 
 log = logging.getLogger(__name__)
+
+LIMIT_MAXIMUM = 1000
 
 
 def query_garmin_stats():
@@ -134,6 +137,54 @@ def http_req(url, post=None, headers=None):
     # print(response.getcode())
 
     return response.read()
+
+
+def createjson(directory, stractId, actsum):
+    json_summary = json.loads(actsum)
+    log.debug(json_summary)
+    log.debug("Device detail URL: " + URL_DEVICE_DETAIL
+              + str(json_summary["metadataDTO"]["deviceApplicationInstallationId"]))
+    device_detail = http_req(
+        URL_DEVICE_DETAIL
+        + str(json_summary["metadataDTO"]["deviceApplicationInstallationId"])
+    )
+    if device_detail:
+        gceutils.write_to_file(
+            directory + "/" + stractId + "_app_info.json",
+            device_detail.decode(), "a",
+        )
+        json_device = json.loads(device_detail)
+        log.debug(json_device)
+    else:
+        log.debug("Retrieving Device Details failed.")
+        json_device = None
+    log.debug("Activity details URL: " + URL_GC_ACTIVITY + stractId + "/details")
+    try:
+        activity_detail = http_req(
+            URL_GC_ACTIVITY + stractId + "/details"
+        )
+        gceutils.write_to_file(
+            directory + "/" + stractId + "_activity_detail.json",
+            activity_detail.decode(), "a",
+        )
+        json_detail = json.loads(activity_detail)
+        log.debug(json_detail)
+    except Exception as error:
+        print("Retrieving Activity Details failed. Reason: " + str(error))
+        json_detail = None
+    log.debug("Gear details URL: " + URL_GEAR_DETAIL + "activityId=" + stractId)
+    gear_detail = http_req(URL_GEAR_DETAIL + "activityId=" + stractId)
+    try:
+        gceutils.write_to_file(directory + "/" + stractId + "_gear_detail.json",
+                               gear_detail.decode(),
+                               "a", )
+        json_gear = json.loads(gear_detail)
+        log.debug(json_gear)
+    except Exception as error:
+        print("Retrieving Gear Details failed. Error: " + str(error))
+        json_gear = None
+
+    return json_summary, json_gear, json_device, json_detail
 
 
 def buildcsvrecord(a, json_summary, json_gear, json_device, json_detail):

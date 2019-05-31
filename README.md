@@ -53,7 +53,7 @@ usage: gcexport.py [-h] [--version] [--username [USERNAME]]
                         
   --debug               print extended progress and debugging messages    
   
-  --delete              file typesto delete from archivr directory. This 
+  --delete              file types to delete from archive directory. This 
                         is performed before the --archive operation. 
                         -- delete .json .csv would delete all files with the
                         extention of .json or .csv                 

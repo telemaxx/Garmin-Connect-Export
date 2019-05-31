@@ -178,7 +178,7 @@ def processactivity(alist):
         # create a string from the activity to avoid having to use the str function multiple times.
         stractid = str(a["activityId"])
         # Display which entry we're working on.
-        print("Garmin Connect activity: [" + stractid + "]  " + a["activityName"])
+        print("Garmin Connect activity: [" + stractid + "]  " + str(a["activityName"]))
         # download the file from Garmin
         download_url, file_mode, data_filename = downloadfile(stractid)
         # if the file already existed go get the next file
@@ -187,6 +187,11 @@ def processactivity(alist):
             continue
         # extract the data from the downloaded file
         data = gceaccess.download_data(download_url, ARGS.format)
+        # if the original zip has no data
+        if data == "":
+            print("/tempty file, no data existed in the downloaded file")
+            continue
+
         TOTAL_RETRIEVED += 1
         # write the file
         gceutils.write_to_file(data_filename, gceutils.decoding_decider(ARGS.format, data), file_mode)
@@ -258,7 +263,9 @@ while TOTAL_DOWNLOADED < TOTAL_TO_DOWNLOAD:
     # Query Garmin Connect
     log.debug("Activity list URL: " + gceaccess.URL_GC_LIST + urllib.parse.urlencode(search_parms))
     activity_list = gceaccess.http_req(gceaccess.URL_GC_LIST + urllib.parse.urlencode(search_parms))
+    print("is this the error: " + str(json.loads(activity_list)))
     gceutils.write_to_file(ARGS.directory + "/activity_list.json", activity_list.decode(), "a")
+
     processactivity(json.loads(activity_list))
     TOTAL_DOWNLOADED += NUM_TO_DOWNLOAD
 # End while loop for multiple chunks.

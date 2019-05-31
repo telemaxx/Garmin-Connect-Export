@@ -263,7 +263,6 @@ while TOTAL_DOWNLOADED < TOTAL_TO_DOWNLOAD:
     # Query Garmin Connect
     log.debug("Activity list URL: " + gceaccess.URL_GC_LIST + urllib.parse.urlencode(search_parms))
     activity_list = gceaccess.http_req(gceaccess.URL_GC_LIST + urllib.parse.urlencode(search_parms))
-    print("is this the error: " + str(json.loads(activity_list)))
     gceutils.write_to_file(ARGS.directory + "/activity_list.json", activity_list.decode(), "a")
 
     processactivity(json.loads(activity_list))

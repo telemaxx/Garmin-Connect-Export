@@ -82,9 +82,6 @@ def decoding_decider(formattype, data):
 
 def write_to_file(filename, content, mode):
     """Helper function that persists content to file."""
-    # if the content is empty write a dummy line esle the write abends
-    if content == '':
-        content = 'empty file, no data existed in the downloaded file'
     write_file = open(filename, mode)
     write_file.write(content)
     write_file.close()

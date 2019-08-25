@@ -16,56 +16,45 @@ Usage
 You will need a little experience running things from the command line to use this script. That said, here are the usage details from the `--help` flag:
 
 ```
-usage: gcexport.py [-h] [--version] [--username [USERNAME]]
-                   [--password [PASSWORD]] [-c [COUNT]]
-                   [-f [{gpx,tcx,original}]] [-d [DIRECTORY]] [-u]
-                   [--verbose] [--delete [.EXT] ] 
-                   [--archive [DIRECTORY/FILENAME.ZIP]  ]
+$ python3 gcexport3.py --help
+usage: gcexport3.py [-h] [--archive ARCHIVE] [--username [USERNAME]]
+                    [--password [PASSWORD]] [-c [COUNT]] [-e [EXTERNAL]]
+                    [-a [ARGS]] [-f [{gpx,tcx,original}]] [-d [DIRECTORY]]
+                    [-u] [--delete [DELETE [DELETE ...]]] [--debug]
+                    [--verbose] [--version]
 
-
+optional arguments:
   -h, --help            show this help message and exit
-  
-
+  --archive ARCHIVE     path with filename to create/append an archive
   --username [USERNAME]
                         your Garmin Connect username (otherwise, you will be
                         prompted)
-                        
   --password [PASSWORD]
                         your Garmin Connect password (otherwise, you will be
                         prompted)
-                        
-  --archive             
-                        after downloading, all the files in the directory will be zipped into
-                        the specified archive zip file. The zip is performed after the optional
-                        --delete processing.
-                                               
   -c [COUNT], --count [COUNT]
                         number of recent activities to download, or 'all'
                         (default: 1)
-                        
+  -e [EXTERNAL], --external [EXTERNAL]
+                        path to external program to pass CSV file too
+                        (default: )
+  -a [ARGS], --args [ARGS]
+                        additional arguments to pass to external program
+                        (default: )
   -f [{gpx,tcx,original}], --format [{gpx,tcx,original}]
                         export format; can be 'gpx', 'tcx', or 'original'
                         (default: 'gpx')
-                        
   -d [DIRECTORY], --directory [DIRECTORY]
                         the directory to export to (default: './YYYY-MM-
                         DD_garmin_connect_export')
-                        
-  --debug               print extended progress and debugging messages    
-  
-  --delete              file types to delete from archive directory. This 
-                        is performed before the --archive operation. 
-                        -- delete .json .csv would delete all files with the
-                        extention of .json or .csv                 
-                        
   -u, --unzip           if downloading ZIP files (format: 'original'), unzip
                         the file and removes the ZIP file
-                        
-  --verbose             print extended progress messages
-  
-  --version             print version and exit
-  
-                    
+  --delete [DELETE [DELETE ...]]
+                        list the .types you want deleted before the archive is
+                        created. Example --delete .csv .json.
+  --debug               turn on debugging log
+  --verbose             increase output verbosity
+  --version             print version and exit                  
 ```
 
 Examples:

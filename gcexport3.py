@@ -38,7 +38,7 @@ import zipfile
 from datetime import datetime
 from getpass import getpass
 from os import mkdir, remove, stat
-from os.path import isdir, isfile
+from os.path import isdir, isfile, sep
 from subprocess import call
 from sys import argv
 from xml.dom.minidom import parseString
@@ -95,22 +95,22 @@ def downloadfile(actid):
     tcxfilename = ""
     gpxfilename = ""
     if ARGS.format == "gpx":
-        datafilename = (ARGS.directory + "/" + actid + "_activity.gpx")
+        datafilename = (ARGS.directory + sep + actid + "_activity.gpx")
         downloadurl = gceaccess.URL_GC_GPX_ACTIVITY + actid + "?full=true"
         log.debug("DownloadURL: " + downloadurl)
         filemode = "w"
     elif ARGS.format == "tcx":
-        datafilename = (ARGS.directory + "/" + actid + "_activity.tcx")
+        datafilename = (ARGS.directory + sep + actid + "_activity.tcx")
         downloadurl = gceaccess.URL_GC_TCX_ACTIVITY + actid + "?full=true"
         log.debug("DownloadURL: " + downloadurl)
         filemode = "w"
     else:
         # some original files may not contain a .fit file. They may only have extracted a gpx or tcx
         # so we want to check for all types here.
-        datafilename = (ARGS.directory + "/" + actid + "_activity.zip")
-        fitfilename = (ARGS.directory + "/" + actid + ".fit")
-        tcxfilename = (ARGS.directory + "/" + actid + ".tcx")
-        gpxfilename = (ARGS.directory + "/" + actid + ".gpx")
+        datafilename = (ARGS.directory + sep + actid + "_activity.zip")
+        fitfilename = (ARGS.directory + sep + actid + ".fit")
+        tcxfilename = (ARGS.directory + sep + actid + ".tcx")
+        gpxfilename = (ARGS.directory + sep + actid + ".gpx")
         downloadurl = gceaccess.URL_GC_ORIGINAL_ACTIVITY + actid
         log.debug("DownloadURL: " + downloadurl)
         filemode = "wb"
@@ -203,7 +203,7 @@ def processactivity(alist):
             print("unable to get activity " + str(aerror))
             continue
         # write the summary file
-        gceutils.write_to_file(ARGS.directory + "/" + stractid + "_activity_summary.json",
+        gceutils.write_to_file(ARGS.directory + sep + stractid + "_activity_summary.json",
                                activity_summary.decode(), "a", )
         # build the json format files
         json_summary, json_gear, json_device, json_detail = gceaccess.createjson(ARGS.directory,

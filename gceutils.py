@@ -83,7 +83,10 @@ def decoding_decider(formattype, data):
 
 def write_to_file(filename, content, mode):
     """Helper function that persists content to file."""
-    write_file = open(filename, mode)
+    if filename.endswith(".json"):
+        write_file = open(filename, mode, encoding="utf-8")
+    else:
+        write_file = open(filename, mode)
     write_file.write(content)
     write_file.close()
 

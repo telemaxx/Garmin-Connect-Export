@@ -234,7 +234,7 @@ if not isdir(ARGS.directory):
 
 CSV_FILENAME = ARGS.directory + "/activities.csv"
 CSV_EXISTED = isfile(CSV_FILENAME)
-CSV_FILE = open(CSV_FILENAME, "a")
+CSV_FILE = open(CSV_FILENAME, "a", encoding="utf-8")
 if not CSV_EXISTED:
     CSV_FILE.write(gceaccess.csvheader())
 

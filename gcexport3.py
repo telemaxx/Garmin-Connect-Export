@@ -78,7 +78,7 @@ def getallfiles():
     # on the profile page to know how many are available
     user_stats = gceaccess.query_garmin_stats()
     # Persist JSON
-    gceutils.write_to_file(ARGS.directory + "/userstats.json", user_stats.decode(), "a")
+    gceutils.write_to_file(ARGS.directory + sep + "userstats.json", user_stats.decode(), "a")
     # Modify total_to_download based on how many activities the server reports.
     json_user = json.loads(user_stats)
     return int(json_user["userMetrics"][0]["totalActivities"])
@@ -232,7 +232,7 @@ except Exception as error:
 if not isdir(ARGS.directory):
     mkdir(ARGS.directory)
 
-CSV_FILENAME = ARGS.directory + "/activities.csv"
+CSV_FILENAME = ARGS.directory + sep + "activities.csv"
 CSV_EXISTED = isfile(CSV_FILENAME)
 CSV_FILE = open(CSV_FILENAME, "a", encoding="utf-8")
 if not CSV_EXISTED:
@@ -263,7 +263,7 @@ while TOTAL_DOWNLOADED < TOTAL_TO_DOWNLOAD:
     # Query Garmin Connect
     log.debug("Activity list URL: " + gceaccess.URL_GC_LIST + urllib.parse.urlencode(search_parms))
     activity_list = gceaccess.http_req(gceaccess.URL_GC_LIST + urllib.parse.urlencode(search_parms))
-    gceutils.write_to_file(ARGS.directory + "/activity_list.json", activity_list.decode(), "a")
+    gceutils.write_to_file(ARGS.directory + sep + "activity_list.json", activity_list.decode(), "a")
 
     processactivity(json.loads(activity_list))
     TOTAL_DOWNLOADED += NUM_TO_DOWNLOAD

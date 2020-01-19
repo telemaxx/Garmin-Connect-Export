@@ -62,6 +62,13 @@ def addargs(parser, activities_directory):
         help="if downloading ZIP files (format: 'original'), unzip the file and removes the ZIP file",
         action="store_true",
     )
+     parser.add_argument(
+        "-r",
+        "--rename",
+        help="additionaly store the activity with different name yyyymmDD_hhmmss_hm",
+        action="store_true",
+    )   
+    
     parser.add_argument(
         "--delete",
         nargs="*",

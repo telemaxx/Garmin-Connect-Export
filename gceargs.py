@@ -2,7 +2,7 @@
 utility functions used in the garmin connect export
 
 """
-
+import os.path
 
 def addargs(parser, activities_directory):
     # global ARGS
@@ -63,10 +63,11 @@ def addargs(parser, activities_directory):
         action="store_true",
     )
     parser.add_argument(
-        "-r",
-        "--rename",
-        help="additionaly store the activity with different name yyyymmDD_hhmmss_hm",
-        action="store_true",
+        "-w",
+        "--workflowdir",
+        nargs="?",
+        default="",
+        help="if downloading activity(format: 'original'), copy the file to this directory (default: not copying)",
     )   
     
     parser.add_argument(

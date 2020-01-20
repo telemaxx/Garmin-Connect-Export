@@ -85,7 +85,7 @@ def write_to_file(filename, content, mode):
     """Helper function that persists content to file."""
     if filename.endswith(".json"):
         write_file = open(filename, mode, encoding="utf-8")
-    else:
+    else: # zip
         write_file = open(filename, mode)
     write_file.write(content)
     write_file.close()

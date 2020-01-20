@@ -166,7 +166,7 @@ def finalizefiles(data, data_filename):
                 for name in z.namelist():
                     z.extract(name, ARGS.directory)
                     log.debug("extracting file: " + ARGS.directory + sep + name) 
-                    if len(ARGS.workflowdir):
+                    if len(ARGS.workflowdir) and join(ARGS.directory, name) != join(ARGS.workflowdir, name):
                         copyfile(join(ARGS.directory, name), join(ARGS.workflowdir, name))
                         log.debug("copy file to: " + ARGS.workflowdir + sep + name)  
                         TOTAL_COPIED += 1

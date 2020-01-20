@@ -203,12 +203,10 @@ def processactivity(alist):
             print("/tempty file, no data existed in the downloaded file")
             continue
         
-
         TOTAL_RETRIEVED += 1
         # write the file
         gceutils.write_to_file(data_filename, gceutils.decoding_decider(ARGS.format, data), file_mode)
         log.debug("Activity summary URL: " + gceaccess.URL_GC_ACTIVITY + stractid)
-        # log.debug("data_filename: " + data_filename)
         # get the summary info, if unavailable go get next file
         try:
             activity_summary = gceaccess.http_req(gceaccess.URL_GC_ACTIVITY + stractid)

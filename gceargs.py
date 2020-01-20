@@ -64,7 +64,7 @@ def addargs(parser, activities_directory):
     )
     parser.add_argument(
         "-w",
-        "--workflowdir",
+        "--workflowdirectory",
         nargs="?",
         default="",
         help="if downloading activity(format: 'original'), copy the file to this directory (default: not copying)",

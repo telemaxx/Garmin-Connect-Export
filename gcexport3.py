@@ -9,6 +9,8 @@ Fork author: Michael P (https://github.com/moderation/)
 Date: August 25, 2018
 Updates: Russ Lilley
 Date: May 12, 2019
+Updates: Thomas Th.
+Date: Jan 20, 2020
 Description:    Use this script to export your fitness data from Garmin Connect.
                 See README.md for more information.
 
@@ -24,6 +26,7 @@ Description:    Use this script to export your fitness data from Garmin Connect.
 # rsjrny    13 May 2019 Added a delay between files to eliminated http timeouts and file in use conditions
 # rsjrny    13 May 2019 Fixed the fit_filename so the skip already downloaded would work
 # rsjrny    13 May 2019 Moved various functions to the gceutils.py file
+# telemaxx  20.Jan 2020 Fixed Fenix bug, runs now on win and linux, new --workflowdirectory ARGS
 ####################################################################################################################
 
 

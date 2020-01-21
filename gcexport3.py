@@ -169,9 +169,9 @@ def finalizefiles(data, data_filename):
                 for name in z.namelist():
                     z.extract(name, ARGS.directory)
                     log.debug("extracting file: " + ARGS.directory + sep + name) 
-                    if len(ARGS.workflowdir) and join(ARGS.directory, name) != join(ARGS.workflowdir, name):
-                        copyfile(join(ARGS.directory, name), join(ARGS.workflowdir, name))
-                        log.debug("copy file to: " + ARGS.workflowdir + sep + name)  
+                    if len(ARGS.workflowdirectory) and join(ARGS.directory, name) != join(ARGS.workflowdirectory, name):
+                        copyfile(join(ARGS.directory, name), join(ARGS.workflowdirectory, name))
+                        log.debug("copy file to: " + ARGS.workflowdirectory + sep + name)  
                         TOTAL_COPIED += 1
                 zip_file.close()
             else:
@@ -243,9 +243,9 @@ except Exception as error:
 if not isdir(ARGS.directory):
     mkdir(ARGS.directory)
     
-if len(ARGS.workflowdir):
-    if not isdir(ARGS.workflowdir):
-        mkdir(ARGS.workflowdir)
+if len(ARGS.workflowdirectory):
+    if not isdir(ARGS.workflowdirectory):
+        mkdir(ARGS.workflowdirectory)
 
 CSV_FILENAME = ARGS.directory + sep + "activities.csv"
 CSV_EXISTED = isfile(CSV_FILENAME)

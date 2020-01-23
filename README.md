@@ -20,8 +20,9 @@ $ python3 gcexport3.py --help
 usage: gcexport3.py [-h] [--archive ARCHIVE] [--username [USERNAME]]
                     [--password [PASSWORD]] [-c [COUNT]] [-e [EXTERNAL]]
                     [-a [ARGS]] [-f [{gpx,tcx,original}]] [-d [DIRECTORY]]
-                    [-u] [--delete [DELETE [DELETE ...]]] [--debug]
-                    [--verbose] [--version]
+                    [-u] [-w [WORKFLOWDIRECTORY]]
+                    [--delete [DELETE [DELETE ...]]] [--debug] [--verbose]
+                    [--version]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -58,7 +59,7 @@ optional arguments:
   --debug               turn on debugging log
   --verbose             increase output verbosity
   --version             print version and exit                  
-```
+
 
 Examples:
 `python3 gcexport3.py --count all` will download all of your data to a dated directory.

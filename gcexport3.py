@@ -173,7 +173,7 @@ def finalizefiles(data, data_filename, friendly_filename):
                     log.debug("extracting file: " + ARGS.directory + sep + name) 
                     if len(ARGS.workflowdirectory) and join(ARGS.directory, name) != join(ARGS.workflowdirectory, name):
                         copyfile(join(ARGS.directory, name), join(ARGS.workflowdirectory, friendly_filename))
-                        log.debug("copy file to: " + ARGS.workflowdirectory + sep + name)  
+                        gceutils.printverbose(ARGS.verbose, 'copy file to: ' + ARGS.workflowdirectory + sep + friendly_filename)
                         TOTAL_COPIED += 1
                 zip_file.close()
             else:
@@ -223,10 +223,8 @@ def processactivity(alist):
                                                                                  stractid, activity_summary)
         # CSV_FILE.write(csv_record)
         CSV_FILE.write(gceaccess.buildcsvrecord(a, json_summary, json_gear, json_device, json_detail))
-        friendly_filename = gceaccess.buildFriendlyFilename(a, json_summary, json_gear, json_device, json_detail)
+        friendly_filename = gceaccess.buildFriendlyFilename(a, json_summary, json_gear, json_device, json_detail, ARGS)
         finalizefiles(data, data_filename, friendly_filename)
-        
-        
 
 print("Welcome to Garmin Connect Exporter!")
 

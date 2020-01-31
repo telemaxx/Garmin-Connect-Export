@@ -442,6 +442,48 @@ Sample count\n"
     return header
 
 
+def buildFriendlyFilename(a, json_summary, json_gear, json_device, json_detail):
+    """
+    crerates a friendly, readable string for the filename in workflowmode
+    """
+    seperator = "-"
+    file_name = ""
+    
+    file_name += (
+        seperator
+        if "startTimeLocal" not in json_summary["summaryDTO"]
+        else json_summary["summaryDTO"]["startTimeLocal"][:19].replace(':','-')
+    )
+    file_name += '-'
+    file_name += (
+        seperator
+        if "activityName" not in a or not a["activityName"]
+        else re.compile('[^a-zA-Z0-9_-]').subn('_', a["activityName"])[0][:30]
+    )
+    file_name += '-'
+    file_name += (
+        seperator
+        if "activityType" not in a
+        else a["activityType"]["typeKey"].title()
+    )
+    file_name += '-'
+    file_name += (
+        seperator
+        if not json_device or "productDisplayName" not in json_device
+        else re.compile('[^a-zA-Z0-9_-:]').subn('e', json_device["productDisplayName"])[0][:12]
+    )  
+    file_name += '-'
+    file_name += (
+        seperator
+        if "elevationGain" not in json_summary["summaryDTO"]
+        else str(json_summary["summaryDTO"]["elevationGain"])+'hm'
+    )
+    
+    file_name += '.fit'
+
+    gceutils.printverbose(1, file_name)
+    return file_name
+
 COOKIE_JAR = http.cookiejar.CookieJar()
 OPENER = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(COOKIE_JAR))
 WEBHOST = "https://connect.garmin.com"

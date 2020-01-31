@@ -137,7 +137,7 @@ def downloadfile(actid):
     return downloadurl, filemode, datafilename
 
 
-def finalizefiles(data, data_filename):
+def finalizefiles(data, data_filename, friendly_filename):
     """
     Finalize the datfile processing. If we are using format gpx see if we have tracks. If we are using
     original and the unzip option was selected unzip the file and remove the original file
@@ -170,7 +170,7 @@ def finalizefiles(data, data_filename):
                     z.extract(name, ARGS.directory)
                     log.debug("extracting file: " + ARGS.directory + sep + name) 
                     if len(ARGS.workflowdirectory) and join(ARGS.directory, name) != join(ARGS.workflowdirectory, name):
-                        copyfile(join(ARGS.directory, name), join(ARGS.workflowdirectory, name))
+                        copyfile(join(ARGS.directory, name), join(ARGS.workflowdirectory, friendly_filename))
                         log.debug("copy file to: " + ARGS.workflowdirectory + sep + name)  
                         TOTAL_COPIED += 1
                 zip_file.close()
@@ -221,8 +221,10 @@ def processactivity(alist):
                                                                                  stractid, activity_summary)
         # CSV_FILE.write(csv_record)
         CSV_FILE.write(gceaccess.buildcsvrecord(a, json_summary, json_gear, json_device, json_detail))
-        finalizefiles(data, data_filename)
-
+        friendly_filename = gceaccess.buildFriendlyFilename(a, json_summary, json_gear, json_device, json_detail)
+        finalizefiles(data, data_filename, friendly_filename)
+        
+        
 
 print("Welcome to Garmin Connect Exporter!")
 

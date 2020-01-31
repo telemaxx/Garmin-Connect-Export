@@ -49,8 +49,9 @@ optional arguments:
                         the directory to export to (default: './YYYY-MM-
                         DD_garmin_connect_export')
   -w [WORKFLOWDIRECTORY], --workflowdirectory [WORKFLOWDIRECTORY]
-                        if downloading activity(format: 'original'),
-                        copy the file to this directory (default: not copying)
+                        if downloading activity(format: 'original' and
+                        --unzip), copy the file given a friendly filename to
+                        this directory (default: not copying)
   -u, --unzip           if downloading ZIP files (format: 'original'), unzip
                         the file and removes the ZIP file
   --delete [DELETE [DELETE ...]]

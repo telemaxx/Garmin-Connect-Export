@@ -27,6 +27,8 @@ Description:    Use this script to export your fitness data from Garmin Connect.
 # rsjrny    13 May 2019 Fixed the fit_filename so the skip already downloaded would work
 # rsjrny    13 May 2019 Moved various functions to the gceutils.py file
 # telemaxx  20.Jan 2020 Fixed Fenix bug, runs now on win and linux, new --workflowdirectory ARGS
+# telemaxx  11.January 2020 Using generic path seperator, which also works on *nix. Solving Fenix Bug
+# telemaxx  31.January 2020 when using --workflowdirectory, using filenames with a friendly name
 ####################################################################################################################
 
 

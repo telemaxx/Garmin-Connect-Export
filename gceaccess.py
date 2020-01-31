@@ -330,7 +330,7 @@ def buildcsvrecord(a, json_summary, json_gear, json_device, json_detail):
     csv_record += (
         empty_record
         if not json_device or "productDisplayName" not in json_device
-        else json_device["productDisplayName"] + " " + json_device["versionString"] + ","
+        else json_device["productDisplayName"].replace('\u0113','e') + " " + json_device["versionString"] + ","
     )
     csv_record += (
         empty_record
@@ -461,12 +461,6 @@ def buildFriendlyFilename(a, json_summary, json_gear, json_device, json_detail, 
         if "activityName" not in a or not a["activityName"]
         else re.compile('[^a-zA-Z0-9_-]').subn('_', a["activityName"])[0][:30]
     )
-#    file_name += seperator
-#    file_name += (
-#        empty_record
-#       if "activityType" not in a
-#       else a["activityType"]["typeKey"].title()
-#    )
     file_name += seperator
     file_name += (
         empty_record

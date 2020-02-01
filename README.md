@@ -67,7 +67,7 @@ Examples:
 
 `python3 gcexport3.py -d ~/MyActivities -c 3 -f original -u --username bobbyjoe --password bestpasswordever1` will download your three most recent activities in the FIT file format (or whatever they were uploaded as) into the `~/MyActivities` directory (unless they already exist). Using the `--username` and `--password` flags are not recommended because your password will be stored in your command line history. Instead, omit them to be prompted (and note that nothing will be displayed when you type your password).
 
-`python3 gcexport3.py -d ~/MyActivities -c 3 -f original -u --username bobbyjoe --password bestpasswordever1  --workflowdirectory c:\hotfolder --unzip --delete .json` same as above, but  additionally copy the files additionally to c:\hotfolder for postprocessing. Then delete the temporary json files.
+`python3 gcexport3.py -d ~/MyActivities -c 3 -f original -u --username bobbyjoe --password bestpasswordever1  --workflowdirectory c:\hotfolder --unzip --delete .json` same as above, but  additionally copy the files additionally to `c:\hotfolder` directory for postprocessing. Then delete the temporary json files.
 
 Alternatively, you may run it with `./gcexport3.py` if you set the file as executable (i.e., `chmod u+x gcexport3.py`).
 
